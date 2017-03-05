@@ -220,13 +220,23 @@ class MainWindow(QtGui.QMainWindow, mainWindow.Ui_MainWindow):
 
     def save_html_view(self):
         self.create_html_view()
-        if self.reportHTML:
-            with open("Current Report.html",'w') as file_:
-                file_.write(self.reportHTML)
+        saveFileName = QtGui.QFileDialog.getSaveFileName(self,"Save File", "My Report","HTML File (*.html);;PDF (*.pdf)")
+        if saveFileName[0] and self.reportHTML:
+            fileName = saveFileName[0]
+            extension = saveFileName[1]
+            if ".html" in extension and not os.path.splitext(fileName)[-1].lower().endswith(".html"):
+                fileName += ".html"
+            if ".pdf" in extension and not os.path.splitext(fileName)[-1].lower().endswith(".pdf"):
+                fileName += ".pdf"
 
-            printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
-            printer.setOutputFileName("CurrentReport.pdf")
-            self.webView.print_(printer)
+            if os.path.splitext(fileName)[-1].lower() == ".html":
+                with open(fileName,'w') as file_:
+                    file_.write(self.reportHTML)
+
+            elif os.path.splitext(fileName)[-1].lower() == ".pdf":
+                printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
+                printer.setOutputFileName(fileName)
+                self.webView.print_(printer)
 
     def prepare_rule_menu(self, pos):
         items = self.ruleBookTreeWidget.selectedItems()
