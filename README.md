@@ -11,5 +11,4 @@ User will be prompted to install requirements.txt on startup if they aren't pres
 # Usage
 DM rulebook will be crawled on application startup and monster stat blocks will be extracted. All monsters will be listed in the left pane. Right/double click on a monster to add it to the current active list. Active list can be previewed in the center pane, or saved to PDF for printing.
 
-[[https://github.com/blakebjorn/5eStatblockPrinter/blob/master/Examples/Preview.png|alt=octocat]]
-
+![alt text](Examples/Preview.png "Preview")
