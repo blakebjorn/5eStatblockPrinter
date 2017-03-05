@@ -75,9 +75,35 @@ class MainWindow(QtGui.QMainWindow, mainWindow.Ui_MainWindow):
         with open("DM_Rules.html",'r') as file_:
             monsterList = re.findall("""<dt id=".*?"><span>.*?</dd>""", file_.read().split("<span>List of Monsters</span>")[-1], re.DOTALL)
 
-        self.monsterDict = {}
         self.monsterTreeParent = QtGui.QTreeWidgetItem(["Monsters"])
-        for monster in monsterList:
+        self.monsterDict = self.parse_monsters(monsterList)
+        self.ruleBookTreeWidget.addTopLevelItem(self.monsterTreeParent)
+        self.monsterTreeParent.setExpanded(True)
+
+        self.ruleBookTreeWidget.setSelectionMode(QtGui.QTreeWidget.ExtendedSelection)
+        self.ruleBookTreeWidget.itemSelectionChanged.connect(self.preview_rule_selection)
+        self.ruleBookTreeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.ruleBookTreeWidget.customContextMenuRequested.connect(self.prepare_rule_menu)
+        self.ruleBookTreeWidget.doubleClicked.connect(self.add_rule_double_click)
+
+        self.webView = QtWebKit.QWebView()
+        self.settings = self.webView.settings()
+        self.settings.setAttribute(QtWebKit.QWebSettings.LocalContentCanAccessRemoteUrls, True)
+
+        self.rightFrameLayout.insertWidget(0, self.webView)
+        self.jinjaTemplate = jinja2.Environment(loader=jinja2.FileSystemLoader(os.curdir)).get_template("wideTemplate.html")
+        self.reportTemplate = jinja2.Environment(loader=jinja2.FileSystemLoader(os.curdir)).get_template("reportTemplate.html")
+
+        self.previewPushButton.clicked.connect(self.create_html_view)
+        self.savePushButton.clicked.connect(self.save_html_view)
+        self.moveDownInTreeButton.clicked.connect(self.move_item_down)
+        self.moveUpInTreeButton.clicked.connect(self.move_item_up)
+        self.filterRulesLineEdit.textChanged.connect(self.filter_rules)
+        self.show()
+
+    def parse_monsters(self, monster_list):
+        outputDict = {}
+        for monster in monster_list:
             monsterName = re.search("(<span>)(.*?)(</span>)", monster).group(2).strip()
             type = re.search("""(<p class="type">)(.*?)(</p>)""", monster, re.DOTALL).group(2).strip()
             ac = re.search("""(<strong>Armor Class</strong>)(.*?)(</p>)""", monster, re.DOTALL).group(2).strip()
@@ -108,8 +134,7 @@ class MainWindow(QtGui.QMainWindow, mainWindow.Ui_MainWindow):
             legendaryActionList = [x[1] for x in re.findall("""(<p>)(.*?)(</p>)""", legendaryActionBlock.group(0) if legendaryActionBlock is not None else "", re.DOTALL) if len(x) == 3]
             lore = re.search("""(<p class="lore">)(.*?)(</p>)""", monster, re.DOTALL)
 
-
-            self.monsterDict[monsterName] = {
+            outputDict[monsterName] = {
                 "monsterName":monsterName,
                 "monsterType":type,
                 "armorClass":ac,
@@ -134,29 +159,46 @@ class MainWindow(QtGui.QMainWindow, mainWindow.Ui_MainWindow):
                 "legendaryActions":legendaryActionList,
                 "lore" : lore
             }
-
             monsterTreeItem = QtGui.QTreeWidgetItem([monsterName])
             self.monsterTreeParent.addChild(monsterTreeItem)
+        return outputDict
 
-        self.ruleBookTreeWidget.addTopLevelItem(self.monsterTreeParent)
+    def filter_rules(self, inputText):
+        inputText = inputText.upper()
+        for parent in range(self.ruleBookTreeWidget.topLevelItemCount()):
+            parentWidget = self.ruleBookTreeWidget.topLevelItem(parent)
+            for childIndex in range(parentWidget.childCount()):
+                if inputText in parentWidget.child(childIndex).text(0).upper():
+                    parentWidget.child(childIndex).setHidden(False)
+                else:
+                    parentWidget.child(childIndex).setHidden(True)
 
-        self.ruleBookTreeWidget.setSelectionMode(QtGui.QTreeWidget.ExtendedSelection)
-        self.ruleBookTreeWidget.itemSelectionChanged.connect(self.preview_rule_selection)
 
-        self.ruleBookTreeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.ruleBookTreeWidget.customContextMenuRequested.connect(self.prepare_rule_menu)
+    def move_item_down(self):
+        selectedItem = self.selectedItemsTreeWidget.selectedItems()[0]
+        if selectedItem.parent():
+            parent = selectedItem.parent()
+            index = selectedItem.parent().indexOfChild(selectedItem)
+            if index+1 < selectedItem.parent().childCount():
+                item = selectedItem.parent().takeChild(index)
+                parent.insertChild(index+1, item)
+                self.selectedItemsTreeWidget.clearSelection()
+                item.setSelected(True)
 
-        self.webView = QtWebKit.QWebView()
-        self.settings = self.webView.settings()
-        self.settings.setAttribute(QtWebKit.QWebSettings.LocalContentCanAccessRemoteUrls, True)
+    def move_item_up(self):
+        selectedItem = self.selectedItemsTreeWidget.selectedItems()[0]
+        if selectedItem.parent():
+            parent = selectedItem.parent()
+            index = selectedItem.parent().indexOfChild(selectedItem)
+            if index-1 >= 0:
+                item = selectedItem.parent().takeChild(index)
+                parent.insertChild(index-1, item)
+                self.selectedItemsTreeWidget.clearSelection()
+                item.setSelected(True)
 
-        self.rightFrameLayout.insertWidget(0, self.webView)
-        self.jinjaTemplate = jinja2.Environment(loader=jinja2.FileSystemLoader(os.curdir)).get_template("wideTemplate.html")
-        self.reportTemplate = jinja2.Environment(loader=jinja2.FileSystemLoader(os.curdir)).get_template("reportTemplate.html")
-
-        self.previewPushButton.clicked.connect(self.create_html_view)
-        self.savePushButton.clicked.connect(self.save_html_view)
-        self.show()
+    def add_rule_double_click(self, index):
+        widget = self.ruleBookTreeWidget.itemFromIndex(index)
+        self.pin_item([(widget.parent().text(0),widget.text(0))])
 
     def create_html_view(self):
         # build list of lists of items to include.
@@ -205,6 +247,7 @@ class MainWindow(QtGui.QMainWindow, mainWindow.Ui_MainWindow):
             else:
                 currentParent = QtGui.QTreeWidgetItem([inputTuple[0]])
                 self.selectedItemsTreeWidget.addTopLevelItem(currentParent)
+                currentParent.setExpanded(True)
 
             for childIndex in range(currentParent.childCount()):
                 if inputTuple[1] in currentParent.child(childIndex).text(0):
@@ -232,12 +275,10 @@ class MainWindow(QtGui.QMainWindow, mainWindow.Ui_MainWindow):
 
     def preview_rule_selection(self):
         selection = self.ruleBookTreeWidget.selectedItems()
-        d = self.build_monster_dict(selection[0].text(0))
-        try:
+        if selection and selection[0].parent():
+            d = self.build_monster_dict(selection[0].text(0))
             self.webView.setHtml(self.jinjaTemplate.render(d))
-        except:
-            print d
-            raise
+
 
 
 if __name__ == "__main__":

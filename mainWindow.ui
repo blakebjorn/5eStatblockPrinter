@@ -31,7 +31,7 @@
         <item>
          <layout class="QGridLayout" name="gridLayout">
           <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEdit"/>
+           <widget class="QLineEdit" name="filterRulesLineEdit"/>
           </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label">

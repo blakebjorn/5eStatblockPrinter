@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mainWindow.ui'
 #
-# Created: Sat Mar  4 19:41:42 2017
+# Created: Sun Mar  5 13:37:04 2017
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -28,9 +28,9 @@ class Ui_MainWindow(object):
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.gridLayout = QtGui.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.lineEdit = QtGui.QLineEdit(self.frame)
-        self.lineEdit.setObjectName("lineEdit")
-        self.gridLayout.addWidget(self.lineEdit, 0, 1, 1, 1)
+        self.filterRulesLineEdit = QtGui.QLineEdit(self.frame)
+        self.filterRulesLineEdit.setObjectName("filterRulesLineEdit")
+        self.gridLayout.addWidget(self.filterRulesLineEdit, 0, 1, 1, 1)
         self.label = QtGui.QLabel(self.frame)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
